@@ -207,6 +207,67 @@ def get_shifts(spectra, reference, align_min, align_max, background=0.):
 
     return pd.Series(data=shifts, index=names)
 
+def get_shifts_w_avg(spectra, reference, align_min, align_max, background=0., average=1):
+    """Determine the shift required to line up spectra with reference by averaging
+    some scans.
+    Parameters
+    ------------
+    spectra : pandas dataframe
+    reference : key from spectra
+        Everything is lined up to this.
+    align_min : float
+        min range of data used in cross-correlation
+    align_max : float
+        max range of data used in cross-correlation
+    background : float
+        subtract off this value before cross-correlation (default 0)
+    Returns
+    ---------
+    shifts : pandas series
+        shifts indexed by name
+    """
+    if average > spectra.shape[1]:
+        raise ValueError('Number of scans to average > number of scans!')
+    
+    if average > 1:
+        partial_sum_spectra = []
+        for i in range(spectra.shape[1]//average):
+            scans = spectra.keys()[average*i:average*(i+1)]
+            tmp,_ = sum_spectra(spectra[scans])
+            tmp.name = i
+            partial_sum_spectra.append(tmp)
+        new_spectra = pd.concat(partial_sum_spectra,axis=1)
+        ref_index = np.array(np.where(spectra.keys() == reference)).flatten()[0]//average
+        ref_spec = partial_sum_spectra[ref_index]
+    else:
+        new_spectra = spectra
+        ref_spec = spectra[reference]
+    
+    choose_range = np.logical_and(ref_spec.index>align_min, ref_spec.index<align_max)
+    ref = ref_spec[choose_range].values
+
+    zero_shift = np.argmax(np.correlate(ref-background, ref-background, mode='Same'))
+
+    partial_shifts = []
+    for name, spectrum in new_spectra.iteritems():
+        choose_range = np.logical_and(spectrum.index>align_min, spectrum.index<align_max)
+        spec = spectrum[choose_range].values
+
+        cross_corr = np.correlate(ref-background, spec-background, mode='Same')
+        shift = np.argmax(cross_corr) - zero_shift
+        partial_shifts.append(shift)
+        
+    
+    shifts = [0.0 for i in range(spectra.shape[1])]
+    names = spectra.keys()
+    for i in range(spectra.shape[1]//average):
+        shifts[average*i:average*(i+1)] = [partial_shifts[i] for j in range(average)]
+    
+    if spectra.shape[1]%average != 0:
+        shifts[-(spectra.shape[1]%average):] = [partial_shifts[spectra.shape[1]//average-1] for i in range(spectra.shape[1]%average)]
+        
+    return pd.Series(data=shifts, index=names)
+
 def get_shifts_w_mean(spectra, reference, align_min, align_max, background=0.):
     """Determine the shift required to line up spectra.
     The mean of the spectra after an initial alignment is used as a reference

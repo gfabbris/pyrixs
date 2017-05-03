@@ -38,7 +38,7 @@ def load_spectra(scans,folder):
     return process1d.load_spectra('',scan_path)
 
 def get_shifts_interp(spectra, reference = 'first', align_min = 0, align_max = 2000,
-                   background=0., average = 1):
+                   background=0., average = 1, factor = 5):
     """Determine the shift required to line up spectra with first or last spectrum.
     It interpolates the data to reduce the pixel size a factor of 10, and averages
     consecutive spectra to improve statistics.
@@ -57,6 +57,9 @@ def get_shifts_interp(spectra, reference = 'first', align_min = 0, align_max = 2
         subtract off this value before cross-correlation (default 0)
     average : int
         number to scans to average to get the shifts
+    factor : int
+        Defines the number of points to use in the alignment procedure, which will be
+    factor*len(x axis)
     Returns
     ---------
     shifts : pandas series
@@ -79,7 +82,7 @@ def get_shifts_interp(spectra, reference = 'first', align_min = 0, align_max = 2
     choose_range = np.logical_and(oldref.index>align_min, oldref.index<align_max)
     oldref = oldref[choose_range].values
     
-    newx = np.linspace(0,oldref.size-1,oldref.size*10)
+    newx = np.linspace(0,oldref.size-1,oldref.size*factor)
     ref = interp1d([i for i in range(oldref.size)],oldref,kind='linear')(newx)
 
     zero_shift = np.argmax(np.correlate(ref-background, ref-background, mode='Same'))
@@ -93,7 +96,7 @@ def get_shifts_interp(spectra, reference = 'first', align_min = 0, align_max = 2
 
         cross_corr = np.correlate(ref-background, spec-background, mode='Same')
         shift = np.argmax(cross_corr) - zero_shift
-        partial_shifts.append(shift/10.)
+        partial_shifts.append(shift/factor)
         
     
     shifts = [0.0 for i in range(spectra.shape[1])]
