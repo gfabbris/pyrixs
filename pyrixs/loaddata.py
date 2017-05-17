@@ -97,17 +97,14 @@ def get_spectrum(filename):
     """
     if filename[-4:].lower() == '.txt':
         return np.loadtxt(filename)
-<<<<<<< HEAD
-    if filename[-4:] == '.dat':
+    elif filename[-4:] == '.dat':
         return np.loadtxt(filename)
-    if filename[-4:] == '.spec':
+    elif filename[-4:] == '.spec':
         return np.loadtxt(filename)
-=======
     elif filename[-3:].lower() == '.h5':
         h5file = h5py.File(filename)
         I = h5file['entry']['analysis']['spectrum'].value
         h5file.close()
         return np.vstack((np.arange(len(I)), I, I)).transpose()
     else:
-        raise Exception('wrong file extension')
->>>>>>> mpmdean/master
+        raise Exception('Wrong file extension')
