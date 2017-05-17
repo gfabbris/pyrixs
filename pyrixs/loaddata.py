@@ -95,7 +95,7 @@ def get_spectrum(filename):
 
     .txt are compatible with np.loadtxt
     """
-    if filename[-4:] == '.txt':
+    if filename[-4:].lower() == '.txt':
         return np.loadtxt(filename)
     elif filename[-4:] == '.dat':
         return np.loadtxt(filename)

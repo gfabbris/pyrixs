@@ -35,7 +35,8 @@ def get_all_spectra_names(search_path):
         all file names matching search_path
     """
     paths = glob.glob(search_path)
-    return [path.split('/')[-1] for path in paths]
+    names = [os.path.split(path)[-1] for path in paths]
+    return sorted(names)
 
 def load_spectra(search_path, selected_file_names):
     """Load all spectra
@@ -349,6 +350,7 @@ def sum_spectra(spectra, shifts=None):
             meta += '# {}\t {} \n'.format(name, shifts[name])
         #meta += '\n'
 
+<<<<<<< HEAD
     return spectrum, meta
 
 def mean_spectra(spectra, shifts=None):
@@ -361,6 +363,12 @@ def mean_spectra(spectra, shifts=None):
         
     shifts : pandas series
         Shifts indexed by name.
+=======
+    meta = '# Shifts applied \n'
+    for name in spectra.keys():
+        meta += '# {}\t {} \n'.format(name, shifts[name])
+    #meta += '\n'
+>>>>>>> mpmdean/master
 
     Returns
     ----------
@@ -502,6 +510,38 @@ def run_test(search_path='test_data/*.txt'):
     save_spectrum('out.dat', spectrum, meta)
 
     return ax1, ax2, ax3
+
+def fit_elastic(x, y, xmin, xmax, ymin, ymax):
+    """Fit x,y data with gaussian. xmin, xmax, ymin, ymax are used to guess peak location
+
+    Parameters
+    ----------
+    x : numpy array
+    y : numpy array
+    xmin:  numpy array
+    xmax: numpy array
+
+    Returns
+    ---------
+    result : lmfit result object
+        description of the fit
+    """
+    gauss_model = lmfit.models.GaussianModel()
+
+    params = gauss_model.make_params()
+    params['center'].value = (xmin + xmax)/2
+    params['center'].min = xmin
+    params['center'].max = xmax
+
+    params['sigma'].value = (xmax - xmin)/10
+    params['sigma'].min = 0
+    params['sigma'].max = (xmax - xmin)
+
+    params['amplitude'].value = ymax*(xmax - xmin)/20
+    params['amplitude'].min = 0.
+
+    errorbars = np.sqrt(y) + 2
+    return gauss_model.fit(y, x=x, params=params, weights=1/errorbars)
 
 if __name__ == "__main__":
     print('Run a test of the code')
